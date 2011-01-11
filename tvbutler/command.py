@@ -56,6 +56,7 @@ def main():
                 log.info("ADDED %(name)s %(season)s %(episode)s in %(quality)s" % show.__dict__)
             # already in preferred quality?
             elif preferred_qualities.count() > 0:
+                log.info("HAVE %(name)s %(season)s %(episode)s to %(quality)s" % show.__dict__)
                 continue
             # update existing quality with this one:
             else:
@@ -66,14 +67,18 @@ def main():
                     log.info("UPDATED %(name)s %(season)s %(episode)s to %(quality)s" % show.__dict__)
     
     torrent_download_dir = path.expanduser(settings.get('main', 'torrent_download_dir'))
-    log.info("downloading torrents to %s" % torrent_download_dir)
-    for show in session.query(TVShow).filter(TVShow.status==u'new'):
-        torrent_path, result = urlretrieve(show.torrent_url, path.join(torrent_download_dir,
-            "%s.torrent" % show.filename))
-        if result.type == 'application/x-bittorrent':
-            show.status = u'torrent_downloaded'
-            log.info("DOWNLOAD %(name)s %(season)s %(episode)s in %(quality)s" % show.__dict__)
-        else:
-            log.error("Couldn't download %s" % show.torrent_url)
+    shows = session.query(TVShow).filter(TVShow.status==u'new')
+    if shows.count() > 0:
+        log.info("downloading torrents to %s" % torrent_download_dir)
+        for show in session.query(TVShow).filter(TVShow.status==u'new'):
+            torrent_path, result = urlretrieve(show.torrent_url, path.join(torrent_download_dir,
+                "%s.torrent" % show.filename))
+            if result.type == 'application/x-bittorrent':
+                show.status = u'torrent_downloaded'
+                log.info("DOWNLOAD %(name)s %(season)s %(episode)s in %(quality)s" % show.__dict__)
+            else:
+                log.error("Couldn't download %s" % show.torrent_url)
+    else:
+        log.info("no shows to download")
 
     session.commit()
